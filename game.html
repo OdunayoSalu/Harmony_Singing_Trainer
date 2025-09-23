@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Harmony Singing Trainer – Game</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="game-container">
+    <header class="game-header">
+      <div class="left">
+        <strong>Harmony Singing Trainer</strong>
+      </div>
+      <div class="right">
+        <a class="btn secondary" href="./index.html">Back to Settings</a>
+      </div>
+    </header>
+
+    <main class="game-content">
+      <div id="status" class="help">Press Start Playing to allow mic access and hear calibration.</div>
+
+      <div class="question-display" id="questionDisplay">
+        <button id="startPlayingBtn" class="btn primary" type="button">Start Playing</button>
+        <div id="questionText" class="question-instruction" style="display:none"></div>
+        <div id="questionDegree" class="help" style="display:none"></div>
+        <div id="revealDegrees" class="answer-feedback" style="display:none"></div>
+      </div>
+
+      <section id="tunerSection" class="tuner-container" style="display:none">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-weight:600; font-size:1rem; color:var(--text);">Pitch feedback</h3>
+          <button id="tunerToggleBtn" class="btn secondary" type="button" style="flex:0 0 auto; width:auto; padding:0.4rem 0.8rem;">Hide</button>
+        </div>
+        <div class="tuner-meter" id="tunerMeter">
+          <div class="tuner-needle" id="tunerNeedle"></div>
+          <div class="tuner-cent-indicator"></div>
+        </div>
+        <div id="tunerCents" class="tuner-cents">0 cents</div>
+      </section>
+
+      <div class="game-controls" id="gameControls" style="display:none">
+        <button id="replayCalibrationBtn" class="btn secondary" type="button">Replay Calibration</button>
+        <button id="replayQuestionBtn" class="btn secondary" type="button">Replay Question</button>
+        <button id="newSetBtn" class="btn secondary" type="button">New set</button>
+        <button id="restartSetBtn" class="btn secondary" type="button">Restart set</button>
+        <button id="stopSetBtn" class="btn secondary" type="button">Stop set</button>
+        <button id="nextQuestionBtn" class="btn primary" type="button" disabled>Next Question</button>
+      </div>
+    </main>
+
+    <section class="settings-panel" id="settingsPanel">
+      <form id="game-settings-form" class="settings-form" style="padding: 1rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
+          <h3 style="font-size:1rem; color:var(--text);">Settings</h3>
+          <button id="collapseSettingsBtn" class="btn secondary" type="button" style="flex:0 0 auto; width:auto; padding:0.4rem 0.8rem;">Collapse</button>
+        </div>
+        <section class="section">
+          <h2>Intervals</h2>
+          <div class="grid grid-2">
+            <label class="chip"><input type="checkbox" name="intervals" value="0" checked> Unison</label>
+            <label class="chip"><input type="checkbox" name="intervals" value="1" checked> 2nds</label>
+            <label class="chip"><input type="checkbox" name="intervals" value="2" checked> 3rds</label>
+            <label class="chip"><input type="checkbox" name="intervals" value="3" checked> 4ths</label>
+            <label class="chip"><input type="checkbox" name="intervals" value="4" checked> 5ths</label>
+            <label class="chip"><input type="checkbox" name="intervals" value="5" checked> 6ths</label>
+            <label class="chip"><input type="checkbox" name="intervals" value="6" checked> 7ths</label>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Interval direction</h2>
+          <div class="grid grid-2">
+            <label class="chip"><input type="checkbox" name="directions" value="up" checked> Ascending</label>
+            <label class="chip"><input type="checkbox" name="directions" value="down" checked> Descending</label>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Degrees of scale</h2>
+          <div class="grid grid-3">
+            <label class="chip"><input type="checkbox" name="degrees" value="1" checked> 1 (do)</label>
+            <label class="chip"><input type="checkbox" name="degrees" value="2" checked> 2 (re)</label>
+            <label class="chip"><input type="checkbox" name="degrees" value="3" checked> 3 (mi)</label>
+            <label class="chip"><input type="checkbox" name="degrees" value="4" checked> 4 (fa)</label>
+            <label class="chip"><input type="checkbox" name="degrees" value="5" checked> 5 (so)</label>
+            <label class="chip"><input type="checkbox" name="degrees" value="6" checked> 6 (la)</label>
+            <label class="chip"><input type="checkbox" name="degrees" value="7" checked> 7 (ti)</label>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Question set</h2>
+          <div class="grid grid-2">
+            <div class="field-row">
+              <label for="questionCount_game">Number of questions in set</label>
+              <input id="questionCount_game" name="questionCount" type="number" min="1" max="100" inputmode="numeric" value="10" />
+            </div>
+            <div class="field-row">
+              <label for="showQuestionDegree_game">Show question degree</label>
+              <label class="switch">
+                <input id="showQuestionDegree_game" name="showQuestionDegree" type="checkbox" checked />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="field-row switch-row">
+            <label for="autoProceed_game">Auto-proceed</label>
+            <label class="switch">
+              <input id="autoProceed_game" name="autoProceed" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Calibration tempo</h2>
+          <div class="grid grid-2">
+            <div class="field-row">
+              <label for="chordTempo_game">Chord progression tempo (bpm)</label>
+              <input id="chordTempo_game" name="chordTempo" type="number" min="40" max="220" inputmode="numeric" value="110" />
+            </div>
+            <div class="field-row">
+              <label for="scaleTempo_game">Scale playback tempo (bpm)</label>
+              <input id="scaleTempo_game" name="scaleTempo" type="number" min="40" max="260" inputmode="numeric" value="175" />
+            </div>
+          </div>
+        </section>
+
+        <div class="buttons">
+          <button type="button" id="applyGameSettingsBtn" class="btn primary" style="flex:1">Apply</button>
+        </div>
+      </form>
+    </section>
+
+    <footer class="app-footer">
+      <button id="toggleSettingsPanelBtn" class="settings-toggle" title="Toggle settings">⚙️ Settings</button>
+      <button id="toggleTunerVisibilityBtn" class="settings-toggle" title="Toggle tuner" style="margin-left:1rem">🎚️ Tuner</button>
+    </footer>
+  </div>
+
+  <script type="module" src="./js/game.js"></script>
+</body>
+</html>

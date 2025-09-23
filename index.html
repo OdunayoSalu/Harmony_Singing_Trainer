@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Harmony Singing Trainer – Settings</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Harmony Singing Trainer</h1>
+    <p class="subtitle">Configure your practice set</p>
+  </header>
+
+  <main class="container">
+    <form id="settings-form" class="settings-form">
+      <section class="section">
+        <h2>Intervals</h2>
+        <p class="help">Choose which interval sizes to practice (diatonic to major scale). Tritones will be skipped.</p>
+        <div class="grid grid-2">
+          <label class="chip"><input type="checkbox" name="intervals" value="0" checked> Unison</label>
+          <label class="chip"><input type="checkbox" name="intervals" value="1" checked> 2nds</label>
+          <label class="chip"><input type="checkbox" name="intervals" value="2" checked> 3rds</label>
+          <label class="chip"><input type="checkbox" name="intervals" value="3" checked> 4ths</label>
+          <label class="chip"><input type="checkbox" name="intervals" value="4" checked> 5ths</label>
+          <label class="chip"><input type="checkbox" name="intervals" value="5" checked> 6ths</label>
+          <label class="chip"><input type="checkbox" name="intervals" value="6" checked> 7ths</label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Interval direction</h2>
+        <div class="grid grid-2">
+          <label class="chip"><input type="checkbox" name="directions" value="up" checked> Ascending</label>
+          <label class="chip"><input type="checkbox" name="directions" value="down" checked> Descending</label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Degrees of scale</h2>
+        <div class="grid grid-3">
+          <label class="chip"><input type="checkbox" name="degrees" value="1" checked> 1 (do)</label>
+          <label class="chip"><input type="checkbox" name="degrees" value="2" checked> 2 (re)</label>
+          <label class="chip"><input type="checkbox" name="degrees" value="3" checked> 3 (mi)</label>
+          <label class="chip"><input type="checkbox" name="degrees" value="4" checked> 4 (fa)</label>
+          <label class="chip"><input type="checkbox" name="degrees" value="5" checked> 5 (so)</label>
+          <label class="chip"><input type="checkbox" name="degrees" value="6" checked> 6 (la)</label>
+          <label class="chip"><input type="checkbox" name="degrees" value="7" checked> 7 (ti)</label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Question set</h2>
+        <div class="field-row">
+          <label for="questionCount">Number of questions in set</label>
+          <input id="questionCount" name="questionCount" type="number" min="1" max="100" inputmode="numeric" value="10" />
+        </div>
+        <div class="field-row switch-row">
+          <label for="autoProceed">Auto-proceed</label>
+          <label class="switch">
+            <input id="autoProceed" name="autoProceed" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="field-row switch-row">
+          <label for="showQuestionDegree">Show question degree</label>
+          <label class="switch">
+            <input id="showQuestionDegree" name="showQuestionDegree" type="checkbox" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Calibration tempo</h2>
+        <div class="grid grid-2">
+          <div class="field-row">
+            <label for="chordTempo">Chord progression tempo (bpm)</label>
+            <input id="chordTempo" name="chordTempo" type="number" min="40" max="220" inputmode="numeric" value="110" />
+          </div>
+          <div class="field-row">
+            <label for="scaleTempo">Scale playback tempo (bpm)</label>
+            <input id="scaleTempo" name="scaleTempo" type="number" min="40" max="260" inputmode="numeric" value="175" />
+          </div>
+        </div>
+      </section>
+
+      <div class="section buttons">
+        <button type="button" id="saveDefaultsBtn" class="btn secondary">Save defaults</button>
+        <button type="submit" class="btn primary">Start</button>
+      </div>
+    </form>
+  </main>
+
+  <footer class="app-footer">
+    <small>Optimized for Google Chrome on iPhone</small>
+  </footer>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
