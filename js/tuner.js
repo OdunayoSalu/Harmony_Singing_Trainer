@@ -13,6 +13,10 @@ export class Tuner {
     this._raf = null;
     this.source = null;
     this.active = false;
+    // smoothing
+    this.centsBuffer = [];
+    this.emaCents = null;
+    this.smoothingAlpha = 0.25; // EMA smoothing factor
   }
 
   async connectStream(stream) {
@@ -37,6 +41,7 @@ export class Tuner {
           cents = null;
         }
       }
+      cents = this._smoothCents(cents);
       if (this.onUpdate) this.onUpdate(cents, rms, hz || null);
       this._raf = requestAnimationFrame(update);
     };
@@ -56,7 +61,7 @@ export class Tuner {
 
     // Compute RMS to detect silence
     let rms = 0; for (let i = 0; i < buf.length; i++) rms += buf[i]*buf[i]; rms = Math.sqrt(rms / buf.length);
-    if (rms < 0.01) return null; // too quiet
+    if (rms < 0.003) return null; // accept normal singing levels
 
     // Auto-correlation
     let bestOffset = -1; let bestCorrelation = 0; const size = buf.length;
@@ -68,21 +73,40 @@ export class Tuner {
         correlation += Math.abs((buf[i]) - (buf[i + offset]));
       }
       correlation = 1 - (correlation / MAX_SAMPLES);
-      if (correlation > 0.9 && correlation > lastCorrelation) {
+      if (correlation > 0.85 && correlation > lastCorrelation) {
         bestCorrelation = correlation;
         bestOffset = offset;
-      } else if (bestCorrelation > 0.9 && correlation < lastCorrelation) {
+      } else if (bestCorrelation > 0.85 && correlation < lastCorrelation) {
         const shift = (interpolateShift(buf, bestOffset));
         const freq = sampleRate / (bestOffset + shift);
         return freq;
       }
       lastCorrelation = correlation;
     }
-    if (bestCorrelation > 0.9) {
+    if (bestCorrelation > 0.85) {
       const freq = sampleRate / bestOffset;
       return freq;
     }
     return null;
+  }
+
+  _smoothCents(cents) {
+    if (cents == null || Number.isNaN(cents)) {
+      // reset smoothing if signal lost
+      this.centsBuffer.length = 0;
+      this.emaCents = null;
+      return null;
+    }
+    // Keep last N cents and compute median to reject outliers
+    const N = 7;
+    this.centsBuffer.push(cents);
+    if (this.centsBuffer.length > N) this.centsBuffer.shift();
+    const sorted = [...this.centsBuffer].sort((a,b)=>a-b);
+    const median = sorted[Math.floor(sorted.length/2)];
+    // Exponential moving average for smoothness
+    if (this.emaCents == null) this.emaCents = median;
+    else this.emaCents = this.smoothingAlpha * median + (1 - this.smoothingAlpha) * this.emaCents;
+    return this.emaCents;
   }
 }
 

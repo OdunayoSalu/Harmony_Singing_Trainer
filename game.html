@@ -23,7 +23,6 @@
       <div class="question-display" id="questionDisplay">
         <div class="controls-group" style="margin-top:0;">
           <button id="startPlayingBtn" class="btn primary" type="button">Start Playing</button>
-          <button id="openSettingsBtn" class="btn secondary" type="button">Settings</button>
         </div>
         <div id="questionText" class="question-instruction" style="display:none"></div>
         <div id="questionDegree" class="help" style="display:none"></div>
@@ -42,6 +41,13 @@
           <div class="tuner-cent-indicator"></div>
         </div>
         <div id="tunerCents" class="tuner-cents">0 cents</div>
+        <div class="field-row switch-row" style="margin-top:0.5rem;">
+          <label for="questionDroneToggle">Question note drone</label>
+          <label class="switch">
+            <input id="questionDroneToggle" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+        </div>
       </section>
 
       <div id="gameControls" style="display:none; width:100%">
@@ -57,6 +63,7 @@
           <button id="restartSetBtn" class="btn secondary" type="button">Restart set</button>
           <button id="newSetBtn" class="btn secondary" type="button">New set</button>
           <button id="stopSetBtn" class="btn secondary" type="button">Stop set</button>
+          <button id="openSettingsBtn" class="btn secondary" type="button">Settings</button>
         </div>
       </div>
     </main>

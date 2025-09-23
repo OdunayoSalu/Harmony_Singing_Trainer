@@ -386,6 +386,7 @@ input:checked + .slider:before {
   color: #2e7d32;
   font-weight: 500;
   font-size: 1.2rem; /* match question-instruction */
+  white-space: pre-line; /* allow line breaks */
 }
 
 .answer-feedback.incorrect {
@@ -467,12 +468,17 @@ input:checked + .slider:before {
   font-size: 0.95rem;
 }
 
+.controls-group + .controls-group {
+  margin-top: 1.25rem; /* vertical spacing between groups */
+}
+
 /* Settings side panel in game */
 .settings-panel {
   position: fixed;
   top: 0;
   right: 0;
   height: 100vh;
+  height: 100dvh; /* better mobile viewport */
   width: min(420px, 90vw);
   background: var(--surface);
   box-shadow: -4px 0 12px rgba(0,0,0,0.15);
@@ -480,10 +486,19 @@ input:checked + .slider:before {
   transition: transform 0.3s ease-out;
   z-index: 1000;
   overflow-y: auto;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 .settings-panel.open {
   transform: translateX(0);
+}
+
+.settings-panel .buttons {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 5;
 }
 
 /* Animation for correct answer */

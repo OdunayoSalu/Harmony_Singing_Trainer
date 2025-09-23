@@ -58,10 +58,12 @@ els.startPlayingBtn.addEventListener('click', async () => {
     await ensurePiano();
     await requestMic();
     els.status.textContent = 'Calibration playing...';
-    await newSet(true);
+    // Show UI immediately
     els.startPlayingBtn.style.display = 'none';
     els.gameControls.style.display = '';
     els.tunerSection.style.display = '';
+    // Kick off set without blocking UI
+    newSet(true);
   } catch (err) {
     console.error(err);
     els.status.textContent = 'Microphone access or audio init failed. Please allow mic and try again.';
@@ -83,6 +85,7 @@ async function newSet(pickNewKey) {
   // stop any previous sounds and cancel ongoing calibration
   cancelCalibration();
   stopAll();
+  stopDrone();
   state.isCalibrating = true;
   if (pickNewKey || !state.keyName) {
     state.keyName = randomMajorKey();
@@ -91,8 +94,8 @@ async function newSet(pickNewKey) {
   state.questionIndex = 0;
   state.totalQuestions = state.settings.questionCount;
   const { totalDurationSec } = await playCalibration(state.keyName, state.rootMidi, state.settings.chordTempo, state.settings.scaleTempo);
-  // wait 2 seconds after calibration
-  await delay(2);
+  // wait 1 second after calibration
+  await delay(1);
   state.isCalibrating = false;
   nextQuestion();
 }
@@ -137,6 +140,8 @@ function nextQuestion() {
   const targetHz = midiToFreq(targetMidi);
   if (state.tuner) state.tuner.setTargetHz(targetHz);
   els.status.textContent = `${state.keyName} major – Question ${state.questionIndex + 1} of ${state.totalQuestions}`;
+  // Start or update question drone if enabled
+  startDroneForCurrentQuestion();
 }
 
 els.replayCalibrationBtn.addEventListener('click', async () => {
@@ -150,22 +155,25 @@ els.replayQuestionBtn.addEventListener('click', async () => {
   if (state.currentQuestion) {
     await resumeContext();
     playNote(state.currentQuestion.questionMidi, 95, 1.2);
+    // maintain drone as-is; if toggle on, ensure drone running
+    startDroneForCurrentQuestion();
   }
 });
 
 els.newSetBtn.addEventListener('click', async () => {
   await resumeContext();
-  await newSet(true);
+  newSet(true);
 });
 
 els.restartSetBtn.addEventListener('click', async () => {
   await resumeContext();
-  await newSet(false);
+  newSet(false);
 });
 
 els.stopSetBtn.addEventListener('click', () => {
   stopAll();
   cancelCalibration();
+  stopDrone();
   els.status.textContent = 'Set stopped. Press Start Playing to begin again or New set.';
   els.startPlayingBtn.style.display = '';
   els.gameControls.style.display = 'none';
@@ -288,8 +296,8 @@ async function onAnswerCorrect() {
 function revealText(q) {
   const qDeg = `${q.baseDegree} (${solfege(q.baseDegree)})`;
   const aDeg = `${q.targetDegree} (${solfege(q.targetDegree)})`;
-  // Always reveal both after correct, regardless of the showQuestionDegree setting
-  return `Question degree: ${qDeg} · Answer degree: ${aDeg}`;
+  // Always reveal both after correct, regardless of the showQuestionDegree setting; each on a new line
+  return `Question degree: ${qDeg}\nAnswer degree: ${aDeg}`;
 }
 
 // Play target answer note once
@@ -303,3 +311,32 @@ els.playAnswerBtn.addEventListener('click', async () => {
 function delay(sec) {
   return new Promise(res => setTimeout(res, sec * 1000));
 }
+
+// Drone: maintain soft question note if toggled
+els.questionDroneToggle = document.getElementById('questionDroneToggle');
+state.droneStop = null;
+
+function stopDrone() {
+  if (state.droneStop) {
+    try { state.droneStop(); } catch {}
+    state.droneStop = null;
+  }
+}
+
+async function startDroneForCurrentQuestion() {
+  stopDrone();
+  if (!els.questionDroneToggle.checked) return;
+  if (!state.currentQuestion) return;
+  await resumeContext();
+  // Soft velocity and longer duration
+  const stopFn = await playNote(state.currentQuestion.questionMidi, 50, 8.0);
+  state.droneStop = stopFn;
+}
+
+els.questionDroneToggle.addEventListener('change', () => {
+  if (els.questionDroneToggle.checked) {
+    startDroneForCurrentQuestion();
+  } else {
+    stopDrone();
+  }
+});
