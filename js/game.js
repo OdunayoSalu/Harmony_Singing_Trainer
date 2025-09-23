@@ -1,6 +1,6 @@
 import { loadCurrentOrDefault, saveDefaults, applyToForm, readFromForm, saveCurrent } from './settings.js';
 import { randomMajorKey, rootMidiForKeyName, computeQuestion, midiToFreq, intervalName, solfege } from './music.js';
-import { getAudioContext, ensurePiano, resumeContext, playNote, playChord, playCalibration, stopAll, playCorrectIfNeeded, setUpCorrectSound, cancelCalibration } from './audio.js';
+import { getAudioContext, ensurePiano, resumeContext, playNote, playChord, playCalibration, stopAll, playCorrectIfNeeded, setUpCorrectSound, cancelCalibration, startPianoDrone, stopPianoDrone } from './audio.js';
 import { Tuner } from './tuner.js';
 
 const state = {
@@ -93,6 +93,8 @@ async function newSet(pickNewKey) {
   state.rootMidi = rootMidiForKeyName(state.keyName, 4);
   state.questionIndex = 0;
   state.totalQuestions = state.settings.questionCount;
+  // Update status immediately for upcoming set
+  els.status.textContent = `${state.keyName} major – Question 1 of ${state.totalQuestions}`;
   const { totalDurationSec } = await playCalibration(state.keyName, state.rootMidi, state.settings.chordTempo, state.settings.scaleTempo);
   // wait 1 second after calibration
   await delay(1);
@@ -314,13 +316,9 @@ function delay(sec) {
 
 // Drone: maintain soft question note if toggled
 els.questionDroneToggle = document.getElementById('questionDroneToggle');
-state.droneStop = null;
 
 function stopDrone() {
-  if (state.droneStop) {
-    try { state.droneStop(); } catch {}
-    state.droneStop = null;
-  }
+  stopPianoDrone();
 }
 
 async function startDroneForCurrentQuestion() {
@@ -328,9 +326,8 @@ async function startDroneForCurrentQuestion() {
   if (!els.questionDroneToggle.checked) return;
   if (!state.currentQuestion) return;
   await resumeContext();
-  // Soft velocity and longer duration
-  const stopFn = await playNote(state.currentQuestion.questionMidi, 50, 8.0);
-  state.droneStop = stopFn;
+  // Seamless looping drone at soft velocity
+  startPianoDrone(state.currentQuestion.questionMidi, 45, 0.45, 0.3);
 }
 
 els.questionDroneToggle.addEventListener('change', () => {

@@ -469,7 +469,7 @@ input:checked + .slider:before {
 }
 
 .controls-group + .controls-group {
-  margin-top: 1.25rem; /* vertical spacing between groups */
+  margin-top: 35px; /* vertical spacing between groups */
 }
 
 /* Settings side panel in game */

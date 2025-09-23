@@ -9,6 +9,8 @@ let piano = null;
 let pianoLoaded = false;
 let correctAudio = null;
 let currentCalibration = null; // { canceled: boolean }
+let droneIntervalId = null;
+let currentDroneMidi = null;
 
 export function getAudioContext() {
   if (!audioContext) {
@@ -95,6 +97,34 @@ export function cancelCalibration() {
 
 function waitSeconds(sec) {
   return new Promise(res => setTimeout(res, sec * 1000));
+}
+
+// Drone helpers: seamless loop using short overlapping grains so it sustains indefinitely.
+export async function startPianoDrone(midi, velocity = 45, grainDurSec = 0.4, periodSec = 0.3) {
+  await ensurePiano();
+  const ctx = getAudioContext();
+  // clear any previous loop
+  if (droneIntervalId) {
+    clearInterval(droneIntervalId);
+    droneIntervalId = null;
+  }
+  currentDroneMidi = midi;
+  // fire immediately, then on interval
+  piano.start({ note: midi, velocity, time: ctx.currentTime + 0.0, duration: Math.max(grainDurSec, 0.05) });
+  droneIntervalId = setInterval(() => {
+    // If MIDI changed elsewhere, stop this loop (safety)
+    if (currentDroneMidi !== midi) return;
+    const now = ctx.currentTime + 0.0;
+    piano.start({ note: midi, velocity, time: now, duration: Math.max(grainDurSec, 0.05) });
+  }, Math.max(periodSec * 1000, 50));
+}
+
+export function stopPianoDrone() {
+  if (droneIntervalId) {
+    clearInterval(droneIntervalId);
+    droneIntervalId = null;
+  }
+  currentDroneMidi = null;
 }
 
 export function setUpCorrectSound() {
