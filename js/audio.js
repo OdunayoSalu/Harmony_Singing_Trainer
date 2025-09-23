@@ -8,6 +8,7 @@ let audioContext = null;
 let piano = null;
 let pianoLoaded = false;
 let correctAudio = null;
+let currentCalibration = null; // { canceled: boolean }
 
 export function getAudioContext() {
   if (!audioContext) {
@@ -53,29 +54,47 @@ export function stopAll() {
 export async function playCalibration(keyName, rootMidi, chordTempoBpm = 110, scaleTempoBpm = 175) {
   await ensurePiano();
   const ctx = getAudioContext();
-  const now = ctx.currentTime + 0.1;
+  currentCalibration = { canceled: false };
 
-  const beatChord = 60 / chordTempoBpm; // seconds per beat
-  const bar = beatChord * 4;
+  const beatChord = 60 / chordTempoBpm; // seconds per beat (one chord per beat)
+  const scaleDur = 60 / scaleTempoBpm; // seconds per scale note
 
-  // Chord progression I - IV - V - I
   const I = buildTriadMidisForRoman(rootMidi, 'I', 0);
   const IV = buildTriadMidisForRoman(rootMidi, 'IV', 0);
   const V = buildTriadMidisForRoman(rootMidi, 'V', 0);
+  const chords = [I, IV, V, I];
 
-  [[I,0],[IV,bar],[V,bar*2],[I,bar*3]].forEach(([triad, offset]) => {
-    triad.forEach(m => piano.start({ note: m, velocity: 85, time: now + offset, duration: bar * 0.95 }));
-  });
+  const startAt = ctx.currentTime + 0.05;
 
-  // Major scale do..do
-  const scaleDur = 60 / scaleTempoBpm;
-  const scaleStart = now + bar * 4 + 0.1;
+  // sequentially play chords, cancellable
+  for (let i = 0; i < chords.length; i++) {
+    if (currentCalibration.canceled) return { totalDurationSec: 0 };
+    const when = ctx.currentTime + 0.0;
+    chords[i].forEach(m => piano.start({ note: m, velocity: 85, time: when, duration: Math.max(beatChord * 0.95, 0.05) }));
+    await waitSeconds(beatChord);
+  }
+
+  // play scale do..do
   for (let i = 0; i < 8; i++) {
+    if (currentCalibration.canceled) return { totalDurationSec: 0 };
     const degIdx = i % 7;
     const octaveOffset = i === 7 ? 1 : 0;
     const midi = rootMidi + MAJOR_SCALE_STEPS[degIdx] + (12 * octaveOffset);
-    piano.start({ note: midi, velocity: 90, time: scaleStart + i * scaleDur, duration: scaleDur * 0.9 });
+    const when = ctx.currentTime + 0.0;
+    piano.start({ note: midi, velocity: 90, time: when, duration: Math.max(scaleDur * 0.9, 0.05) });
+    await waitSeconds(scaleDur);
   }
+
+  const totalDurationSec = (beatChord * chords.length) + (scaleDur * 8);
+  return { totalDurationSec };
+}
+
+export function cancelCalibration() {
+  if (currentCalibration) currentCalibration.canceled = true;
+}
+
+function waitSeconds(sec) {
+  return new Promise(res => setTimeout(res, sec * 1000));
 }
 
 export function setUpCorrectSound() {

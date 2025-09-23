@@ -93,7 +93,8 @@ function centsDiff(inputHz, targetHz) {
   // reduce to nearest modulo 12
   let diff = (inputMidi - targetMidi) * 100; // cents
   // normalize to [-600, 600)
-  diff = ((diff + 600) % 1200) - 600;
+  diff = ((diff % 1200) + 1200) % 1200; // [0,1200)
+  if (diff > 600) diff -= 1200;
   return diff;
 }
 

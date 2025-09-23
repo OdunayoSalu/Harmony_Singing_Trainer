@@ -21,7 +21,10 @@
       <div id="status" class="help">Press Start Playing to allow mic access and hear calibration.</div>
 
       <div class="question-display" id="questionDisplay">
-        <button id="startPlayingBtn" class="btn primary" type="button">Start Playing</button>
+        <div class="controls-group" style="margin-top:0;">
+          <button id="startPlayingBtn" class="btn primary" type="button">Start Playing</button>
+          <button id="openSettingsBtn" class="btn secondary" type="button">Settings</button>
+        </div>
         <div id="questionText" class="question-instruction" style="display:none"></div>
         <div id="questionDegree" class="help" style="display:none"></div>
         <div id="revealDegrees" class="answer-feedback" style="display:none"></div>
@@ -34,18 +37,27 @@
         </div>
         <div class="tuner-meter" id="tunerMeter">
           <div class="tuner-needle" id="tunerNeedle"></div>
+          <div class="tuner-threshold" id="tunerThresholdLeft"></div>
+          <div class="tuner-threshold" id="tunerThresholdRight"></div>
           <div class="tuner-cent-indicator"></div>
         </div>
         <div id="tunerCents" class="tuner-cents">0 cents</div>
       </section>
 
-      <div class="game-controls" id="gameControls" style="display:none">
-        <button id="replayCalibrationBtn" class="btn secondary" type="button">Replay Calibration</button>
-        <button id="replayQuestionBtn" class="btn secondary" type="button">Replay Question</button>
-        <button id="newSetBtn" class="btn secondary" type="button">New set</button>
-        <button id="restartSetBtn" class="btn secondary" type="button">Restart set</button>
-        <button id="stopSetBtn" class="btn secondary" type="button">Stop set</button>
-        <button id="nextQuestionBtn" class="btn primary" type="button" disabled>Next Question</button>
+      <div id="gameControls" style="display:none; width:100%">
+        <div class="controls-group">
+          <button id="playAnswerBtn" class="btn secondary" type="button">Play Answer</button>
+          <button id="nextQuestionBtn" class="btn primary" type="button">Next Question</button>
+        </div>
+        <div class="controls-group">
+          <button id="replayCalibrationBtn" class="btn secondary" type="button">Replay Calibration</button>
+          <button id="replayQuestionBtn" class="btn secondary" type="button">Replay Question</button>
+        </div>
+        <div class="controls-group">
+          <button id="restartSetBtn" class="btn secondary" type="button">Restart set</button>
+          <button id="newSetBtn" class="btn secondary" type="button">New set</button>
+          <button id="stopSetBtn" class="btn secondary" type="button">Stop set</button>
+        </div>
       </div>
     </main>
 
@@ -53,11 +65,11 @@
       <form id="game-settings-form" class="settings-form" style="padding: 1rem;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
           <h3 style="font-size:1rem; color:var(--text);">Settings</h3>
-          <button id="collapseSettingsBtn" class="btn secondary" type="button" style="flex:0 0 auto; width:auto; padding:0.4rem 0.8rem;">Collapse</button>
+          <button id="cancelGameSettingsBtn" class="btn secondary" type="button" style="flex:0 0 auto; width:auto; padding:0.4rem 0.8rem;">Cancel</button>
         </div>
         <section class="section">
           <h2>Intervals</h2>
-          <div class="grid grid-2">
+          <div class="grid grid-responsive">
             <label class="chip"><input type="checkbox" name="intervals" value="0" checked> Unison</label>
             <label class="chip"><input type="checkbox" name="intervals" value="1" checked> 2nds</label>
             <label class="chip"><input type="checkbox" name="intervals" value="2" checked> 3rds</label>
@@ -70,7 +82,7 @@
 
         <section class="section">
           <h2>Interval direction</h2>
-          <div class="grid grid-2">
+          <div class="grid grid-responsive">
             <label class="chip"><input type="checkbox" name="directions" value="up" checked> Ascending</label>
             <label class="chip"><input type="checkbox" name="directions" value="down" checked> Descending</label>
           </div>
@@ -78,7 +90,7 @@
 
         <section class="section">
           <h2>Degrees of scale</h2>
-          <div class="grid grid-3">
+          <div class="grid grid-responsive">
             <label class="chip"><input type="checkbox" name="degrees" value="1" checked> 1 (do)</label>
             <label class="chip"><input type="checkbox" name="degrees" value="2" checked> 2 (re)</label>
             <label class="chip"><input type="checkbox" name="degrees" value="3" checked> 3 (mi)</label>
@@ -133,10 +145,7 @@
       </form>
     </section>
 
-    <footer class="app-footer">
-      <button id="toggleSettingsPanelBtn" class="settings-toggle" title="Toggle settings">⚙️ Settings</button>
-      <button id="toggleTunerVisibilityBtn" class="settings-toggle" title="Toggle tuner" style="margin-left:1rem">🎚️ Tuner</button>
-    </footer>
+    
   </div>
 
   <script type="module" src="./js/game.js"></script>

@@ -1,6 +1,6 @@
 import { loadCurrentOrDefault, saveDefaults, applyToForm, readFromForm, saveCurrent } from './settings.js';
 import { randomMajorKey, rootMidiForKeyName, computeQuestion, midiToFreq, intervalName, solfege } from './music.js';
-import { getAudioContext, ensurePiano, resumeContext, playNote, playChord, playCalibration, stopAll, playCorrectIfNeeded, setUpCorrectSound } from './audio.js';
+import { getAudioContext, ensurePiano, resumeContext, playNote, playChord, playCalibration, stopAll, playCorrectIfNeeded, setUpCorrectSound, cancelCalibration } from './audio.js';
 import { Tuner } from './tuner.js';
 
 const state = {
@@ -14,6 +14,7 @@ const state = {
   tuner: null,
   correctStreakMs: 0,
   lastUpdateTime: 0,
+  isCalibrating: false,
 };
 
 const els = {
@@ -34,12 +35,12 @@ const els = {
   tunerMeter: document.getElementById('tunerMeter'),
   tunerNeedle: document.getElementById('tunerNeedle'),
   tunerCents: document.getElementById('tunerCents'),
-  toggleSettingsPanelBtn: document.getElementById('toggleSettingsPanelBtn'),
-  toggleTunerVisibilityBtn: document.getElementById('toggleTunerVisibilityBtn'),
   settingsPanel: document.getElementById('settingsPanel'),
   applyGameSettingsBtn: document.getElementById('applyGameSettingsBtn'),
-  collapseSettingsBtn: document.getElementById('collapseSettingsBtn'),
+  cancelGameSettingsBtn: document.getElementById('cancelGameSettingsBtn'),
   gameSettingsForm: document.getElementById('game-settings-form'),
+  openSettingsBtn: document.getElementById('openSettingsBtn'),
+  playAnswerBtn: document.getElementById('playAnswerBtn'),
 };
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -79,13 +80,20 @@ async function requestMic() {
 }
 
 async function newSet(pickNewKey) {
+  // stop any previous sounds and cancel ongoing calibration
+  cancelCalibration();
+  stopAll();
+  state.isCalibrating = true;
   if (pickNewKey || !state.keyName) {
     state.keyName = randomMajorKey();
   }
   state.rootMidi = rootMidiForKeyName(state.keyName, 4);
   state.questionIndex = 0;
   state.totalQuestions = state.settings.questionCount;
-  await playCalibration(state.keyName, state.rootMidi, state.settings.chordTempo, state.settings.scaleTempo);
+  const { totalDurationSec } = await playCalibration(state.keyName, state.rootMidi, state.settings.chordTempo, state.settings.scaleTempo);
+  // wait 2 seconds after calibration
+  await delay(2);
+  state.isCalibrating = false;
   nextQuestion();
 }
 
@@ -95,6 +103,7 @@ function updateUIForShowQuestionDegree() {
 }
 
 function nextQuestion() {
+  if (state.isCalibrating) return; // don't start during calibration
   if (state.questionIndex >= state.totalQuestions) {
     els.status.textContent = `Set complete in ${state.keyName} major. Choose New set to continue.`;
     els.questionText.style.display = 'none';
@@ -120,18 +129,20 @@ function nextQuestion() {
   }
 
   // Play question note
-  playNote(state.currentQuestion.questionMidi, 95, 1.2);
+  if (!state.isCalibrating) {
+    playNote(state.currentQuestion.questionMidi, 95, 1.2);
+  }
 
   // Set tuner target to target note frequency
   const targetHz = midiToFreq(targetMidi);
   if (state.tuner) state.tuner.setTargetHz(targetHz);
-
-  els.nextQuestionBtn.disabled = true;
   els.status.textContent = `${state.keyName} major – Question ${state.questionIndex + 1} of ${state.totalQuestions}`;
 }
 
 els.replayCalibrationBtn.addEventListener('click', async () => {
   await resumeContext();
+  cancelCalibration();
+  stopAll();
   await playCalibration(state.keyName, state.rootMidi, state.settings.chordTempo, state.settings.scaleTempo);
 });
 
@@ -154,43 +165,41 @@ els.restartSetBtn.addEventListener('click', async () => {
 
 els.stopSetBtn.addEventListener('click', () => {
   stopAll();
+  cancelCalibration();
   els.status.textContent = 'Set stopped. Press Start Playing to begin again or New set.';
   els.startPlayingBtn.style.display = '';
   els.gameControls.style.display = 'none';
 });
 
 els.nextQuestionBtn.addEventListener('click', () => {
+  if (state.isCalibrating) return; // ignore during calibration
   state.questionIndex++;
   nextQuestion();
 });
 
-// Settings panel toggles
-els.toggleSettingsPanelBtn.addEventListener('click', () => toggleSettingsPanel());
-els.collapseSettingsBtn.addEventListener('click', () => toggleSettingsPanel(false));
+// Settings panel controls
+els.openSettingsBtn.addEventListener('click', () => openSettingsPanel());
+els.cancelGameSettingsBtn.addEventListener('click', () => {
+  // discard changes: reset form to current settings
+  applyToForm(els.gameSettingsForm, state.settings);
+  closeSettingsPanel();
+});
 els.applyGameSettingsBtn.addEventListener('click', () => {
   state.settings = readFromForm(els.gameSettingsForm);
   saveCurrent(state.settings);
   updateUIForShowQuestionDegree();
   // Keep current question, but future questions use new settings
+  closeSettingsPanel();
 });
 
-function toggleSettingsPanel(forceOpen) {
-  const open = forceOpen !== undefined ? forceOpen : !els.settingsPanel.classList.contains('open');
-  if (open) {
-    els.settingsPanel.classList.add('open');
-  } else {
-    els.settingsPanel.classList.remove('open');
-  }
+function openSettingsPanel() {
+  applyToForm(els.gameSettingsForm, state.settings);
+  els.settingsPanel.classList.add('open');
 }
 
-// Tuner visibility
-els.toggleTunerVisibilityBtn.addEventListener('click', () => {
-  if (els.tunerSection.style.display === 'none') {
-    els.tunerSection.style.display = '';
-  } else {
-    els.tunerSection.style.display = 'none';
-  }
-});
+function closeSettingsPanel() {
+  els.settingsPanel.classList.remove('open');
+}
 
 els.tunerToggleBtn.addEventListener('click', () => {
   if (els.tunerMeter.style.display === 'none') {
@@ -204,6 +213,29 @@ els.tunerToggleBtn.addEventListener('click', () => {
   }
 });
 
+const TOLERANCE_CENTS = 25; // threshold
+const HOLD_MS = 1000; // must hold for 1 second
+let lastMeterWidth = 0;
+
+function positionToleranceMarkers() {
+  const meterWidth = els.tunerMeter.clientWidth;
+  if (!meterWidth) return;
+  if (meterWidth === lastMeterWidth) return;
+  lastMeterWidth = meterWidth;
+  const half = meterWidth / 2;
+  const px = (TOLERANCE_CENTS / 100) * (half - 4); // using same scale as needle mapping
+  const left = half - px;
+  const right = half + px;
+  const leftEl = document.getElementById('tunerThresholdLeft');
+  const rightEl = document.getElementById('tunerThresholdRight');
+  if (leftEl && rightEl) {
+    leftEl.style.left = `${left}px`;
+    rightEl.style.left = `${right}px`;
+  }
+}
+
+window.addEventListener('resize', positionToleranceMarkers);
+
 function onTunerUpdate(cents, rms, hz) {
   // Update needle and text
   const meterWidth = els.tunerMeter.clientWidth;
@@ -213,19 +245,21 @@ function onTunerUpdate(cents, rms, hz) {
   els.tunerNeedle.style.transform = `translateX(calc(-50% + ${px}px))`;
   els.tunerCents.textContent = cents == null ? '—' : `${displayCents.toFixed(0)} cents`;
 
+  positionToleranceMarkers();
+
   // Determine correctness (octave-equivalent)
   const now = performance.now();
   const dt = state.lastUpdateTime ? (now - state.lastUpdateTime) : 0;
   state.lastUpdateTime = now;
 
-  const within = cents != null && Math.abs(cents) < 25; // threshold
+  const within = cents != null && Math.abs(cents) < TOLERANCE_CENTS; // threshold
   if (within) {
     state.correctStreakMs += dt;
   } else {
     state.correctStreakMs = 0;
   }
 
-  if (state.currentQuestion && state.correctStreakMs > 400) {
+  if (state.currentQuestion && state.correctStreakMs > HOLD_MS) {
     onAnswerCorrect();
   }
 }
@@ -247,16 +281,25 @@ async function onAnswerCorrect() {
     state.questionIndex++;
     nextQuestion();
   } else {
-    els.nextQuestionBtn.disabled = false;
+    // Next Question is always enabled, nothing to toggle
   }
 }
 
 function revealText(q) {
   const qDeg = `${q.baseDegree} (${solfege(q.baseDegree)})`;
   const aDeg = `${q.targetDegree} (${solfege(q.targetDegree)})`;
-  if (state.settings.showQuestionDegree) {
-    return `Question degree: ${qDeg} · Answer degree: ${aDeg}`;
-  } else {
-    return `Answer degree: ${aDeg}`;
-  }
+  // Always reveal both after correct, regardless of the showQuestionDegree setting
+  return `Question degree: ${qDeg} · Answer degree: ${aDeg}`;
+}
+
+// Play target answer note once
+els.playAnswerBtn.addEventListener('click', async () => {
+  if (!state.currentQuestion) return;
+  await resumeContext();
+  const { targetMidi } = state.currentQuestion;
+  playNote(targetMidi, 95, 1.2);
+});
+
+function delay(sec) {
+  return new Promise(res => setTimeout(res, sec * 1000));
 }

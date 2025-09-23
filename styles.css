@@ -110,6 +110,11 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.grid-responsive {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  align-items: stretch;
+}
+
 .grid-2 {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -163,6 +168,9 @@ input[type="text"]:focus {
   transition: all 0.2s;
   border: 1px solid var(--border);
   user-select: none;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
 }
 
 .chip:hover {
@@ -322,9 +330,9 @@ input:checked + .slider:before {
 .game-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100vh;
   max-width: 100%;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .game-header {
@@ -341,7 +349,7 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 1.5rem;
   text-align: center;
 }
@@ -377,6 +385,7 @@ input:checked + .slider:before {
   background-color: #e8f5e9;
   color: #2e7d32;
   font-weight: 500;
+  font-size: 1.2rem; /* match question-instruction */
 }
 
 .answer-feedback.incorrect {
@@ -398,7 +407,7 @@ input:checked + .slider:before {
 .tuner-meter {
   position: relative;
   height: 60px;
-  background: linear-gradient(90deg, #e53935 0%, #fdd835 50%, #43a047 100%);
+  background: linear-gradient(90deg, #e53935 0%, #fdd835 40%, #43a047 50%, #fdd835 60%, #e53935 100%);
   border-radius: 30px;
   margin: 1rem 0;
   overflow: hidden;
@@ -413,6 +422,16 @@ input:checked + .slider:before {
   background-color: #000;
   transform: translateX(-50%);
   transition: transform 0.1s ease-out;
+}
+
+.tuner-threshold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  border-left: 2px dashed rgba(0,0,0,0.5);
+  z-index: 1;
 }
 
 .tuner-cent-indicator {
@@ -434,42 +453,37 @@ input:checked + .slider:before {
 }
 
 /* Game controls */
-.game-controls {
+.controls-group {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
   width: 100%;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 
-.game-controls .btn {
+.controls-group .btn {
   margin: 0;
   padding: 0.75rem;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
-/* Settings panel in game */
+/* Settings side panel in game */
 .settings-panel {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-  background-color: var(--surface);
-  border-top: 1px solid var(--border);
-}
-
-.settings-panel.open {
-  max-height: 1000px; /* Adjust based on content */
-  padding: 1rem;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(420px, 90vw);
+  background: var(--surface);
+  box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+  transform: translateX(100%);
+  transition: transform 0.3s ease-out;
+  z-index: 1000;
   overflow-y: auto;
 }
 
-.settings-toggle {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0.5rem;
+.settings-panel.open {
+  transform: translateX(0);
 }
 
 /* Animation for correct answer */
