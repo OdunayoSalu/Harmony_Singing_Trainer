@@ -224,7 +224,7 @@ els.tunerToggleBtn.addEventListener('click', () => {
 });
 
 const TOLERANCE_CENTS = 25; // threshold
-const HOLD_MS = 1000; // must hold for 1 second
+const HOLD_MS = 500; // must hold for 1 second
 let lastMeterWidth = 0;
 
 function positionToleranceMarkers() {
