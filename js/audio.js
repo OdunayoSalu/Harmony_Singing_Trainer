@@ -12,6 +12,9 @@ let currentCalibration = null; // { canceled: boolean }
 let droneIntervalId = null;
 let currentDroneMidi = null;
 
+// Global velocity boost (approx 50% louder across all piano sounds)
+const VELOCITY_BOOST = 1.5;
+
 export function getAudioContext() {
   if (!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -39,14 +42,16 @@ export async function playNote(midi, velocity = 90, durationSec = 1.2, when = 0)
   await ensurePiano();
   const ctx = getAudioContext();
   const startTime = ctx.currentTime + Math.max(0, when);
-  return piano.start({ note: midi, velocity, time: startTime, duration: durationSec });
+  const boostedVelocity = Math.min(127, Math.round(velocity * VELOCITY_BOOST));
+  return piano.start({ note: midi, velocity: boostedVelocity, time: startTime, duration: durationSec });
 }
 
 export async function playChord(midis, velocity = 80, durationSec = 2.0, when = 0) {
   await ensurePiano();
   const ctx = getAudioContext();
   const startTime = ctx.currentTime + Math.max(0, when);
-  midis.forEach(m => piano.start({ note: m, velocity, time: startTime, duration: durationSec }));
+  const boostedVelocity = Math.min(127, Math.round(velocity * VELOCITY_BOOST));
+  midis.forEach(m => piano.start({ note: m, velocity: boostedVelocity, time: startTime, duration: durationSec }));
 }
 
 export function stopAll() {
@@ -72,7 +77,8 @@ export async function playCalibration(keyName, rootMidi, chordTempoBpm = 110, sc
   for (let i = 0; i < chords.length; i++) {
     if (currentCalibration.canceled) return { totalDurationSec: 0 };
     const when = ctx.currentTime + 0.0;
-    chords[i].forEach(m => piano.start({ note: m, velocity: 85, time: when, duration: Math.max(beatChord * 0.95, 0.05) }));
+    const vel = Math.min(127, Math.round(85 * VELOCITY_BOOST));
+    chords[i].forEach(m => piano.start({ note: m, velocity: vel, time: when, duration: Math.max(beatChord * 0.95, 0.05) }));
     await waitSeconds(beatChord);
   }
 
@@ -83,7 +89,8 @@ export async function playCalibration(keyName, rootMidi, chordTempoBpm = 110, sc
     const octaveOffset = i === 7 ? 1 : 0;
     const midi = rootMidi + MAJOR_SCALE_STEPS[degIdx] + (12 * octaveOffset);
     const when = ctx.currentTime + 0.0;
-    piano.start({ note: midi, velocity: 90, time: when, duration: Math.max(scaleDur * 0.9, 0.05) });
+    const vel = Math.min(127, Math.round(90 * VELOCITY_BOOST));
+    piano.start({ note: midi, velocity: vel, time: when, duration: Math.max(scaleDur * 0.9, 0.05) });
     await waitSeconds(scaleDur);
   }
 
@@ -110,12 +117,13 @@ export async function startPianoDrone(midi, velocity = 45, grainDurSec = 0.4, pe
   }
   currentDroneMidi = midi;
   // fire immediately, then on interval
-  piano.start({ note: midi, velocity, time: ctx.currentTime + 0.0, duration: Math.max(grainDurSec, 0.05) });
+  const boostedVelocity = Math.min(127, Math.round(velocity * VELOCITY_BOOST));
+  piano.start({ note: midi, velocity: boostedVelocity, time: ctx.currentTime + 0.0, duration: Math.max(grainDurSec, 0.05) });
   droneIntervalId = setInterval(() => {
     // If MIDI changed elsewhere, stop this loop (safety)
     if (currentDroneMidi !== midi) return;
     const now = ctx.currentTime + 0.0;
-    piano.start({ note: midi, velocity, time: now, duration: Math.max(grainDurSec, 0.05) });
+    piano.start({ note: midi, velocity: boostedVelocity, time: now, duration: Math.max(grainDurSec, 0.05) });
   }, Math.max(periodSec * 1000, 50));
 }
 
@@ -144,7 +152,7 @@ export async function playCorrectSoundFallback() {
   o.type = 'sine';
   o.frequency.value = 880;
   g.gain.setValueAtTime(0.0001, ctx.currentTime);
-  g.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+  g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.01);
   g.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.2);
   o.connect(g).connect(ctx.destination);
   o.start();
@@ -156,6 +164,8 @@ export async function playCorrectIfNeeded(skip=false) {
   try {
     if (!correctAudio) setUpCorrectSound();
     if (correctAudio) {
+      // Increase the correct sound volume by ~50%, but cap at 1.0
+      try { correctAudio.volume = Math.min(1, (correctAudio.volume || 1) * VELOCITY_BOOST); } catch {}
       await correctAudio.play();
     } else {
       await playCorrectSoundFallback();
